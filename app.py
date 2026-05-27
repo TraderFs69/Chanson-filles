@@ -237,70 +237,81 @@ if st.session_state.current_player is not None:
             )
 
         # ==================================================
-# MOBILE MODE
-# ==================================================
-else:
+        # MOBILE MODE
+        # ==================================================
+        else:
 
-    audio_html = f"""
-    <html>
-    <body style="
-        margin:0;
-        padding:0;
-        background:#111;
-    ">
+            audio_html = f"""
+            <html>
+            <body style="
+                margin:0;
+                padding:0;
+                background:#111;
+            ">
 
-    <audio
-        id="audio_{unique_id}"
-        controls
-        autoplay
-        playsinline
-        style="
-            width:100%;
-            height:90px;
-            position:fixed;
-            top:0;
-            left:0;
-            z-index:9999;
-            background:#111;
-        "
-    >
-        <source
-            src="data:audio/mp3;base64,{audio_base64}"
-            type="audio/mp3"
-        >
-    </audio>
+            <audio
+                id="audio_{unique_id}"
+                controls
+                autoplay
+                playsinline
+                style="
+                    width:100%;
+                    height:90px;
+                    position:fixed;
+                    top:0;
+                    left:0;
+                    z-index:9999;
+                    background:#111;
+                "
+            >
+                <source
+                    src="data:audio/mp3;base64,{audio_base64}"
+                    type="audio/mp3"
+                >
+            </audio>
 
-    <script>
+            <script>
 
-        const audio = document.getElementById(
-            "audio_{unique_id}"
-        );
+                const audio = document.getElementById(
+                    "audio_{unique_id}"
+                );
 
-        audio.load();
+                audio.load();
 
-        const playPromise = audio.play();
+                const playPromise = audio.play();
 
-        if (playPromise !== undefined) {{
+                if (playPromise !== undefined) {{
 
-            playPromise
-                .then(() => {{
-                    console.log("mobile playing");
-                }})
-                .catch(error => {{
-                    console.log(error);
-                }});
-        }}
+                    playPromise
+                        .then(() => {{
+                            console.log("mobile playing");
+                        }})
+                        .catch(error => {{
+                            console.log(error);
+                        }});
+                }}
 
-    </script>
+            </script>
 
-    </body>
-    </html>
-    """
+            </body>
+            </html>
+            """
 
-    components.html(
-        audio_html,
-        height=100
-    )
+            components.html(
+                audio_html,
+                height=100
+            )
+
+    except Exception as e:
+
+        st.error(
+            f"Impossible de lire : {audio_path}"
+        )
+
+        st.write(e)
+
+st.divider()
+
 # ==================================================
 # AVAILABLE PLAYERS
 # ==================================================
