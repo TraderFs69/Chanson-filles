@@ -13,6 +13,20 @@ st.set_page_config(
     layout="wide"
 )
 
+# ==================================================
+# AUTO SCROLL SCRIPT
+# ==================================================
+st.markdown("""
+<script>
+function scrollToTop() {
+    window.parent.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+    });
+}
+</script>
+""", unsafe_allow_html=True)
+
 EXCEL_FILE = "Chanson Filles.xlsx"
 
 # ==================================================
@@ -287,6 +301,19 @@ for i, player_name in enumerate(
 
             st.session_state.current_player = (
                 player_name
+            )
+
+            # AUTO SCROLL TOP
+            components.html(
+                """
+                <script>
+                window.parent.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                });
+                </script>
+                """,
+                height=0
             )
 
             st.rerun()
