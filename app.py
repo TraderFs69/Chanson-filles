@@ -102,6 +102,15 @@ st.markdown(
 )
 
 # ==================================================
+# DEVICE MODE
+# ==================================================
+device_mode = st.radio(
+    "Mode de lecture",
+    ["💻 PC", "📱 Cellulaire"],
+    horizontal=True
+)
+
+# ==================================================
 # STOP BUTTON
 # ==================================================
 stop_col1, stop_col2, stop_col3 = st.columns([1,2,1])
@@ -141,7 +150,6 @@ if st.session_state.current_player is not None:
             audio_bytes
         ).decode()
 
-        # ID UNIQUE
         unique_id = str(time.time()).replace(".", "")
 
         # ==================================================
@@ -178,9 +186,9 @@ if st.session_state.current_player is not None:
             st.session_state.stop_audio = False
 
         # ==================================================
-        # PLAY AUDIO
+        # PC MODE
         # ==================================================
-        else:
+        elif device_mode == "💻 PC":
 
             audio_html = f"""
             <html>
@@ -226,6 +234,60 @@ if st.session_state.current_player is not None:
             components.html(
                 audio_html,
                 height=0
+            )
+
+        # ==================================================
+        # MOBILE MODE
+        # ==================================================
+        else:
+
+            audio_html = f"""
+            <html>
+            <body style="margin:0;padding:0;">
+
+            <audio
+                id="audio_{unique_id}"
+                controls
+                autoplay
+                playsinline
+                style="width:100%;"
+            >
+                <source
+                    src="data:audio/mp3;base64,{audio_base64}"
+                    type="audio/mp3"
+                >
+            </audio>
+
+            <script>
+
+                const audio = document.getElementById(
+                    "audio_{unique_id}"
+                );
+
+                audio.load();
+
+                const playPromise = audio.play();
+
+                if (playPromise !== undefined) {{
+
+                    playPromise
+                        .then(() => {{
+                            console.log("mobile playing");
+                        }})
+                        .catch(error => {{
+                            console.log(error);
+                        }});
+                }}
+
+            </script>
+
+            </body>
+            </html>
+            """
+
+            components.html(
+                audio_html,
+                height=70
             )
 
     except Exception as e:
