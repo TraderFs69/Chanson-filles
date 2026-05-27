@@ -47,9 +47,6 @@ if "lineup" not in st.session_state:
 if "current_player" not in st.session_state:
     st.session_state.current_player = None
 
-if "audio_key" not in st.session_state:
-    st.session_state.audio_key = 0
-
 if "stop_audio" not in st.session_state:
     st.session_state.stop_audio = False
 
@@ -115,8 +112,6 @@ with stop_col2:
 
         st.session_state.stop_audio = True
 
-        st.session_state.audio_key = time.time()
-
         st.rerun()
 
 # ==================================================
@@ -146,6 +141,7 @@ if st.session_state.current_player is not None:
             audio_bytes
         ).decode()
 
+        # ID UNIQUE
         unique_id = str(time.time()).replace(".", "")
 
         # ==================================================
@@ -153,7 +149,7 @@ if st.session_state.current_player is not None:
         # ==================================================
         if st.session_state.stop_audio:
 
-            stop_html = f"""
+            stop_html = """
             <html>
             <body>
 
@@ -161,12 +157,12 @@ if st.session_state.current_player is not None:
 
                 const audios = document.getElementsByTagName('audio');
 
-                for (let i = 0; i < audios.length; i++) {{
+                for (let i = 0; i < audios.length; i++) {
 
                     audios[i].pause();
 
                     audios[i].currentTime = 0;
-                }}
+                }
 
             </script>
 
@@ -176,8 +172,7 @@ if st.session_state.current_player is not None:
 
             components.html(
                 stop_html,
-                height=0,
-                key=unique_id
+                height=0
             )
 
             st.session_state.stop_audio = False
@@ -230,8 +225,7 @@ if st.session_state.current_player is not None:
 
             components.html(
                 audio_html,
-                height=0,
-                key=unique_id
+                height=0
             )
 
     except Exception as e:
@@ -327,8 +321,6 @@ for i, player_name in enumerate(
             )
 
             st.session_state.stop_audio = False
-
-            st.session_state.audio_key = time.time()
 
             st.rerun()
 
