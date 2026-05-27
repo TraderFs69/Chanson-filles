@@ -1,9 +1,6 @@
 import streamlit as st
 import pandas as pd
 from streamlit_sortables import sort_items
-import streamlit.components.v1 as components
-import base64
-import time
 
 # ==================================================
 # CONFIG
@@ -87,6 +84,11 @@ st.markdown("""
     font-weight: bold;
 }
 
+[data-testid="stAudio"] {
+    margin-top: -10px;
+    margin-bottom: 20px;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -97,102 +99,6 @@ st.markdown(
     '<div class="main-title">⚾ WALK-UP SONGS ⚾</div>',
     unsafe_allow_html=True
 )
-
-# ==================================================
-# DEVICE MODE
-# ==================================================
-device_mode = st.radio(
-    "Mode de lecture",
-    ["💻 PC", "📱 Cellulaire"],
-    horizontal=True
-)
-
-# ==================================================
-# AUDIO SECTION SIDEBAR
-# ==================================================
-with st.sidebar:
-
-    st.markdown("## 🎵 Lecture")
-
-    if st.session_state.current_player is not None:
-
-        row = df[
-            df["Nom"]
-            == st.session_state.current_player
-        ].iloc[0]
-
-        st.markdown(f"""
-        ### {row['Nom']}
-        """)
-
-        audio_path = f"songs/{row['Fichier']}"
-
-        try:
-
-            with open(audio_path, "rb") as audio_file:
-
-                audio_bytes = audio_file.read()
-
-            # ==================================================
-            # MOBILE
-            # ==================================================
-            if device_mode == "📱 Cellulaire":
-
-                st.audio(audio_bytes)
-
-            # ==================================================
-            # PC AUTOPLAY
-            # ==================================================
-            else:
-
-                audio_base64 = base64.b64encode(
-                    audio_bytes
-                ).decode()
-
-                unique_id = str(
-                    time.time()
-                ).replace(".", "")
-
-                audio_html = f"""
-                <html>
-                <body>
-
-                <audio
-                    id="audio_{unique_id}"
-                    autoplay
-                >
-                    <source
-                        src="data:audio/mp3;base64,{audio_base64}"
-                        type="audio/mp3"
-                    >
-                </audio>
-
-                <script>
-
-                    const audio = document.getElementById(
-                        "audio_{unique_id}"
-                    );
-
-                    audio.play();
-
-                </script>
-
-                </body>
-                </html>
-                """
-
-                components.html(
-                    audio_html,
-                    height=0
-                )
-
-        except Exception as e:
-
-            st.error(
-                f"Impossible de lire : {audio_path}"
-            )
-
-            st.write(e)
 
 # ==================================================
 # AVAILABLE PLAYERS
@@ -276,8 +182,6 @@ for i, player_name in enumerate(
                 player_name
             )
 
-            st.rerun()
-
     # REMOVE
     with cols[3]:
 
@@ -291,6 +195,29 @@ for i, player_name in enumerate(
             )
 
             st.rerun()
+
+    # ==================================================
+    # PLAYER DIRECTEMENT SOUS LA JOUEUSE
+    # ==================================================
+    if st.session_state.current_player == player_name:
+
+        audio_path = f"songs/{row['Fichier']}"
+
+        try:
+
+            with open(audio_path, "rb") as audio_file:
+
+                audio_bytes = audio_file.read()
+
+            st.audio(audio_bytes)
+
+        except Exception as e:
+
+            st.error(
+                f"Impossible de lire : {audio_path}"
+            )
+
+            st.write(e)
 
 # ==================================================
 # SAVE LINEUP
