@@ -1,7 +1,9 @@
 import streamlit as st
 import pandas as pd
 from streamlit_sortables import sort_items
+import streamlit.components.v1 as components
 import base64
+import time
 
 # ==================================================
 # CONFIG
@@ -44,6 +46,12 @@ if "lineup" not in st.session_state:
 
 if "current_player" not in st.session_state:
     st.session_state.current_player = None
+
+if "audio_key" not in st.session_state:
+    st.session_state.audio_key = 0
+
+if "stop_audio" not in st.session_state:
+    st.session_state.stop_audio = False
 
 # ==================================================
 # STYLE
@@ -97,7 +105,22 @@ st.markdown(
 )
 
 # ==================================================
-# CURRENT SONG
+# STOP BUTTON
+# ==================================================
+stop_col1, stop_col2, stop_col3 = st.columns([1,2,1])
+
+with stop_col2:
+
+    if st.button("🛑 STOP SONG"):
+
+        st.session_state.stop_audio = True
+
+        st.session_state.audio_key = time.time()
+
+        st.rerun()
+
+# ==================================================
+# AUDIO SECTION
 # ==================================================
 if st.session_state.current_player is not None:
 
@@ -123,23 +146,93 @@ if st.session_state.current_player is not None:
             audio_bytes
         ).decode()
 
-        # IMPORTANT :
-        # lecteur unique à chaque chanson
-        audio_html = f"""
-        <audio autoplay id="{row['Fichier']}">
-            <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
-        </audio>
+        unique_id = str(time.time()).replace(".", "")
 
-        <script>
-        var audio = document.getElementById("{row['Fichier']}");
-        audio.play();
-        </script>
-        """
+        # ==================================================
+        # STOP AUDIO
+        # ==================================================
+        if st.session_state.stop_audio:
 
-        st.markdown(
-            audio_html,
-            unsafe_allow_html=True
-        )
+            stop_html = f"""
+            <html>
+            <body>
+
+            <script>
+
+                const audios = document.getElementsByTagName('audio');
+
+                for (let i = 0; i < audios.length; i++) {{
+
+                    audios[i].pause();
+
+                    audios[i].currentTime = 0;
+                }}
+
+            </script>
+
+            </body>
+            </html>
+            """
+
+            components.html(
+                stop_html,
+                height=0,
+                key=unique_id
+            )
+
+            st.session_state.stop_audio = False
+
+        # ==================================================
+        # PLAY AUDIO
+        # ==================================================
+        else:
+
+            audio_html = f"""
+            <html>
+            <body>
+
+            <audio
+                id="audio_{unique_id}"
+                autoplay
+            >
+                <source
+                    src="data:audio/mp3;base64,{audio_base64}#t={unique_id}"
+                    type="audio/mp3"
+                >
+            </audio>
+
+            <script>
+
+                const audio = document.getElementById(
+                    "audio_{unique_id}"
+                );
+
+                audio.load();
+
+                const playPromise = audio.play();
+
+                if (playPromise !== undefined) {{
+
+                    playPromise
+                        .then(() => {{
+                            console.log("playing");
+                        }})
+                        .catch(error => {{
+                            console.log(error);
+                        }});
+                }}
+
+            </script>
+
+            </body>
+            </html>
+            """
+
+            components.html(
+                audio_html,
+                height=0,
+                key=unique_id
+            )
 
     except Exception as e:
 
@@ -232,6 +325,10 @@ for i, player_name in enumerate(
             st.session_state.current_player = (
                 player_name
             )
+
+            st.session_state.stop_audio = False
+
+            st.session_state.audio_key = time.time()
 
             st.rerun()
 
