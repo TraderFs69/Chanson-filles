@@ -13,7 +13,7 @@ st.set_page_config(
 EXCEL_FILE = "Chanson Filles.xlsx"
 
 # ==================================================
-# LOAD EXCEL
+# LOAD DATA
 # ==================================================
 @st.cache_data
 def load_data():
@@ -23,8 +23,6 @@ def load_data():
     df.columns = df.columns.str.strip()
 
     df = df.rename(columns={
-        "Ordre": "ordre",
-        "ORDRE": "ordre",
         "nom": "Nom",
         "NOM": "Nom",
         "lien": "Lien",
@@ -33,85 +31,170 @@ def load_data():
 
     return df
 
-if "df" not in st.session_state:
-    st.session_state.df = load_data()
+df = load_data()
+
+# ==================================================
+# SESSION STATE
+# ==================================================
+if "lineup" not in st.session_state:
+    st.session_state.lineup = []
 
 if "current_player" not in st.session_state:
     st.session_state.current_player = None
 
 # ==================================================
+# STYLE
+# ==================================================
+st.markdown("""
+<style>
+
+.main-title {
+    text-align: center;
+    font-size: 42px;
+    font-weight: bold;
+    margin-bottom: 20px;
+}
+
+.section-title {
+    font-size: 30px;
+    font-weight: bold;
+    margin-top: 20px;
+    margin-bottom: 10px;
+}
+
+.player-card {
+    background-color: #111111;
+    color: white;
+    padding: 15px;
+    border-radius: 12px;
+    border: 2px solid #ff8c00;
+    margin-bottom: 10px;
+    text-align: center;
+    font-size: 24px;
+    font-weight: bold;
+}
+
+audio {
+    width: 100%;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
+# ==================================================
 # HEADER
 # ==================================================
-st.title("⚾ WALK-UP SONGS MANAGER")
-
-st.markdown("## Drag & Drop Lineup")
-
-# ==================================================
-# SORTABLE LIST
-# ==================================================
-names_list = st.session_state.df["Nom"].tolist()
-
-sorted_names = sort_items(
-    names_list,
-    direction="vertical"
+st.markdown(
+    '<div class="main-title">⚾ WALK-UP SONGS ⚾</div>',
+    unsafe_allow_html=True
 )
 
 # ==================================================
-# REBUILD DATAFRAME
+# AVAILABLE PLAYERS
 # ==================================================
-new_df = pd.DataFrame()
+st.markdown(
+    '<div class="section-title">Joueuses disponibles</div>',
+    unsafe_allow_html=True
+)
 
-for i, name in enumerate(sorted_names):
+available_players = [
+    name for name in df["Nom"].tolist()
+    if name not in st.session_state.lineup
+]
 
-    row = st.session_state.df[
-        st.session_state.df["Nom"] == name
-    ].iloc[0]
-
-    row["ordre"] = i + 1
-
-    new_df = pd.concat([
-        new_df,
-        pd.DataFrame([row])
-    ], ignore_index=True)
-
-st.session_state.df = new_df
+selected_available = sort_items(
+    available_players,
+    direction="horizontal",
+    key="available_players"
+)
 
 st.divider()
 
 # ==================================================
-# CURRENT PLAYER
+# LINEUP
+# ==================================================
+st.markdown(
+    '<div class="section-title">Lineup</div>',
+    unsafe_allow_html=True
+)
+
+new_lineup = sort_items(
+    st.session_state.lineup,
+    direction="vertical",
+    key="lineup_players"
+)
+
+st.session_state.lineup = new_lineup
+
+# ==================================================
+# ADD PLAYER TO LINEUP
+# ==================================================
+st.subheader("Ajouter au lineup")
+
+cols = st.columns(4)
+
+for i, player_name in enumerate(available_players):
+
+    with cols[i % 4]:
+
+        if st.button(
+            f"➕ {player_name}",
+            key=f"add_{player_name}"
+        ):
+
+            st.session_state.lineup.append(player_name)
+
+            st.rerun()
+
+st.divider()
+
+# ==================================================
+# CURRENT AUDIO
 # ==================================================
 if st.session_state.current_player is not None:
 
-    player_row = st.session_state.df[
-        st.session_state.df["Nom"]
+    row = df[
+        df["Nom"]
         == st.session_state.current_player
     ].iloc[0]
 
     st.markdown(f"""
-    ### 🎵 Lecture en cours
-    ## {player_row['Nom']}
+    ## 🎵 Lecture en cours
+    ### {row['Nom']}
     """)
 
-    st.audio(player_row["Lien"])
+    st.audio(row["Lien"])
 
 st.divider()
 
 # ==================================================
-# PLAY BUTTONS
+# DISPLAY LINEUP
 # ==================================================
-st.subheader("Lineup")
+st.subheader("Ordre au bâton")
 
-for i, row in st.session_state.df.iterrows():
+for i, player_name in enumerate(st.session_state.lineup):
 
-    cols = st.columns([1,5,2])
+    row = df[
+        df["Nom"] == player_name
+    ].iloc[0]
 
+    cols = st.columns([1,5,2,2])
+
+    # ORDER
     with cols[0]:
-        st.markdown(f"### #{i+1}")
 
+        st.markdown(f"## #{i+1}")
+
+    # NAME
     with cols[1]:
-        st.markdown(f"### {row['Nom']}")
 
+        st.markdown(f"""
+        <div class="player-card">
+        {player_name}
+        </div>
+        """, unsafe_allow_html=True)
+
+    # PLAY
     with cols[2]:
 
         if st.button(
@@ -119,19 +202,39 @@ for i, row in st.session_state.df.iterrows():
             key=f"play_{i}"
         ):
 
-            st.session_state.current_player = row["Nom"]
+            st.session_state.current_player = player_name
+
+            st.rerun()
+
+    # REMOVE
+    with cols[3]:
+
+        if st.button(
+            "❌ REMOVE",
+            key=f"remove_{i}"
+        ):
+
+            st.session_state.lineup.remove(player_name)
 
             st.rerun()
 
 # ==================================================
-# SAVE EXCEL
+# SAVE LINEUP
 # ==================================================
 st.divider()
 
 if st.button("💾 Sauvegarder le lineup"):
 
-    st.session_state.df.to_excel(
-        EXCEL_FILE,
+    lineup_df = pd.DataFrame({
+        "ordre": range(
+            1,
+            len(st.session_state.lineup) + 1
+        ),
+        "Nom": st.session_state.lineup
+    })
+
+    lineup_df.to_excel(
+        "lineup_match.xlsx",
         index=False
     )
 
