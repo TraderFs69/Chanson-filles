@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from streamlit_sortables import sort_items
+import base64
 
 # ==================================================
 # CONFIG
@@ -76,10 +77,6 @@ st.markdown("""
     font-weight: bold;
 }
 
-audio {
-    width: 100%;
-}
-
 .stButton button {
     width: 100%;
     height: 55px;
@@ -98,6 +95,49 @@ st.markdown(
     '<div class="main-title">⚾ WALK-UP SONGS ⚾</div>',
     unsafe_allow_html=True
 )
+
+# ==================================================
+# CURRENT SONG
+# ==================================================
+if st.session_state.current_player is not None:
+
+    row = df[
+        df["Nom"]
+        == st.session_state.current_player
+    ].iloc[0]
+
+    st.markdown(f"""
+    ## 🎵 Lecture en cours
+    ### {row['Nom']}
+    """)
+
+    audio_path = f"songs/{row['Fichier']}"
+
+    try:
+
+        with open(audio_path, "rb") as audio_file:
+
+            audio_bytes = audio_file.read()
+
+        audio_base64 = base64.b64encode(
+            audio_bytes
+        ).decode()
+
+        audio_html = f"""
+        <audio autoplay>
+            <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
+        </audio>
+        """
+
+        st.markdown(
+            audio_html,
+            unsafe_allow_html=True
+        )
+
+    except:
+        st.error(f"Impossible de lire : {audio_path}")
+
+st.divider()
 
 # ==================================================
 # AVAILABLE PLAYERS
@@ -130,10 +170,10 @@ for i, player_name in enumerate(available_players):
 st.divider()
 
 # ==================================================
-# DRAG & DROP LINEUP
+# LINEUP
 # ==================================================
 st.markdown(
-    '<div class="section-title">Lineup</div>',
+    '<div class="section-title">Ordre au bâton</div>',
     unsafe_allow_html=True
 )
 
@@ -145,44 +185,9 @@ sorted_lineup = sort_items(
 
 st.session_state.lineup = sorted_lineup
 
-st.divider()
-
-# ==================================================
-# CURRENT SONG
-# ==================================================
-if st.session_state.current_player is not None:
-
-    row = df[
-        df["Nom"]
-        == st.session_state.current_player
-    ].iloc[0]
-
-    st.markdown(f"""
-    ## 🎵 Lecture en cours
-    ### {row['Nom']}
-    """)
-
-    audio_path = f"songs/{row['Fichier']}"
-
-    try:
-
-        with open(audio_path, "rb") as audio_file:
-
-            audio_bytes = audio_file.read()
-
-        st.audio(audio_bytes)
-
-    except:
-        st.error(f"Impossible de lire : {audio_path}")
-
-st.divider()
-
-# ==================================================
-# DISPLAY LINEUP
-# ==================================================
-st.subheader("Ordre au bâton")
-
-for i, player_name in enumerate(st.session_state.lineup):
+for i, player_name in enumerate(
+    st.session_state.lineup
+):
 
     row = df[
         df["Nom"] == player_name
@@ -212,7 +217,9 @@ for i, player_name in enumerate(st.session_state.lineup):
             key=f"play_{i}"
         ):
 
-            st.session_state.current_player = player_name
+            st.session_state.current_player = (
+                player_name
+            )
 
             st.rerun()
 
@@ -224,7 +231,9 @@ for i, player_name in enumerate(st.session_state.lineup):
             key=f"remove_{i}"
         ):
 
-            st.session_state.lineup.remove(player_name)
+            st.session_state.lineup.remove(
+                player_name
+            )
 
             st.rerun()
 
