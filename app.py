@@ -20,13 +20,15 @@ def load_data():
 
     df = pd.read_excel(EXCEL_FILE)
 
+    # Nettoyage colonnes
     df.columns = df.columns.str.strip()
 
+    # Uniformiser noms colonnes
     df = df.rename(columns={
         "nom": "Nom",
         "NOM": "Nom",
-        "lien": "Lien",
-        "LIEN": "Lien"
+        "fichier": "Fichier",
+        "FICHIER": "Fichier"
     })
 
     return df
@@ -78,6 +80,14 @@ audio {
     width: 100%;
 }
 
+.stButton button {
+    width: 100%;
+    height: 55px;
+    border-radius: 12px;
+    font-size: 18px;
+    font-weight: bold;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -102,35 +112,6 @@ available_players = [
     if name not in st.session_state.lineup
 ]
 
-selected_available = sort_items(
-    available_players,
-    direction="horizontal",
-    key="available_players"
-)
-
-st.divider()
-
-# ==================================================
-# LINEUP
-# ==================================================
-st.markdown(
-    '<div class="section-title">Lineup</div>',
-    unsafe_allow_html=True
-)
-
-new_lineup = sort_items(
-    st.session_state.lineup,
-    direction="vertical",
-    key="lineup_players"
-)
-
-st.session_state.lineup = new_lineup
-
-# ==================================================
-# ADD PLAYER TO LINEUP
-# ==================================================
-st.subheader("Ajouter au lineup")
-
 cols = st.columns(4)
 
 for i, player_name in enumerate(available_players):
@@ -149,7 +130,25 @@ for i, player_name in enumerate(available_players):
 st.divider()
 
 # ==================================================
-# CURRENT AUDIO
+# DRAG & DROP LINEUP
+# ==================================================
+st.markdown(
+    '<div class="section-title">Lineup</div>',
+    unsafe_allow_html=True
+)
+
+sorted_lineup = sort_items(
+    st.session_state.lineup,
+    direction="vertical",
+    key="lineup_sort"
+)
+
+st.session_state.lineup = sorted_lineup
+
+st.divider()
+
+# ==================================================
+# CURRENT SONG
 # ==================================================
 if st.session_state.current_player is not None:
 
@@ -163,7 +162,18 @@ if st.session_state.current_player is not None:
     ### {row['Nom']}
     """)
 
-    st.audio(row["Lien"])
+    audio_path = f"songs/{row['Fichier']}"
+
+    try:
+
+        with open(audio_path, "rb") as audio_file:
+
+            audio_bytes = audio_file.read()
+
+        st.audio(audio_bytes)
+
+    except:
+        st.error(f"Impossible de lire : {audio_path}")
 
 st.divider()
 
