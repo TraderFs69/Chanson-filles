@@ -47,9 +47,6 @@ if "lineup" not in st.session_state:
 if "current_player" not in st.session_state:
     st.session_state.current_player = None
 
-if "stop_audio" not in st.session_state:
-    st.session_state.stop_audio = False
-
 # ==================================================
 # STYLE
 # ==================================================
@@ -90,6 +87,16 @@ st.markdown("""
     font-weight: bold;
 }
 
+/* PLAYER TOUJOURS VISIBLE */
+[data-testid="stAudio"] {
+    position: sticky;
+    top: 0;
+    z-index: 9999;
+    background: #111;
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -111,204 +118,92 @@ device_mode = st.radio(
 )
 
 # ==================================================
-# STOP BUTTON
-# ==================================================
-stop_col1, stop_col2, stop_col3 = st.columns([1,2,1])
-
-with stop_col2:
-
-    if st.button("🛑 STOP SONG"):
-
-        st.session_state.stop_audio = True
-
-        st.rerun()
-
-# ==================================================
 # AUDIO SECTION
 # ==================================================
-if st.session_state.current_player is not None:
+audio_container = st.container()
 
-    row = df[
-        df["Nom"]
-        == st.session_state.current_player
-    ].iloc[0]
+with audio_container:
 
-    st.markdown(f"""
-    ## 🎵 Lecture en cours
-    ### {row['Nom']}
-    """)
+    if st.session_state.current_player is not None:
 
-    audio_path = f"songs/{row['Fichier']}"
+        row = df[
+            df["Nom"]
+            == st.session_state.current_player
+        ].iloc[0]
 
-    try:
+        st.markdown(f"""
+        ## 🎵 Lecture en cours
+        ### {row['Nom']}
+        """)
 
-        with open(audio_path, "rb") as audio_file:
+        audio_path = f"songs/{row['Fichier']}"
 
-            audio_bytes = audio_file.read()
+        try:
 
-        audio_base64 = base64.b64encode(
-            audio_bytes
-        ).decode()
+            with open(audio_path, "rb") as audio_file:
 
-        unique_id = str(time.time()).replace(".", "")
+                audio_bytes = audio_file.read()
 
-        # ==================================================
-        # STOP AUDIO
-        # ==================================================
-        if st.session_state.stop_audio:
+            # ==================================================
+            # MOBILE MODE
+            # ==================================================
+            if device_mode == "📱 Cellulaire":
 
-            stop_html = """
-            <html>
-            <body>
+                st.audio(audio_bytes)
 
-            <script>
+            # ==================================================
+            # PC MODE AUTOPLAY
+            # ==================================================
+            else:
 
-                const audios = document.getElementsByTagName('audio');
+                audio_base64 = base64.b64encode(
+                    audio_bytes
+                ).decode()
 
-                for (let i = 0; i < audios.length; i++) {
+                unique_id = str(
+                    time.time()
+                ).replace(".", "")
 
-                    audios[i].pause();
+                audio_html = f"""
+                <html>
+                <body>
 
-                    audios[i].currentTime = 0;
-                }
-
-            </script>
-
-            </body>
-            </html>
-            """
-
-            components.html(
-                stop_html,
-                height=0
-            )
-
-            st.session_state.stop_audio = False
-
-        # ==================================================
-        # PC MODE
-        # ==================================================
-        elif device_mode == "💻 PC":
-
-            audio_html = f"""
-            <html>
-            <body>
-
-            <audio
-                id="audio_{unique_id}"
-                autoplay
-            >
-                <source
-                    src="data:audio/mp3;base64,{audio_base64}#t={unique_id}"
-                    type="audio/mp3"
+                <audio
+                    id="audio_{unique_id}"
+                    autoplay
                 >
-            </audio>
+                    <source
+                        src="data:audio/mp3;base64,{audio_base64}"
+                        type="audio/mp3"
+                    >
+                </audio>
 
-            <script>
+                <script>
 
-                const audio = document.getElementById(
-                    "audio_{unique_id}"
-                );
+                    const audio = document.getElementById(
+                        "audio_{unique_id}"
+                    );
 
-                audio.load();
+                    audio.play();
 
-                const playPromise = audio.play();
+                </script>
 
-                if (playPromise !== undefined) {{
+                </body>
+                </html>
+                """
 
-                    playPromise
-                        .then(() => {{
-                            console.log("playing");
-                        }})
-                        .catch(error => {{
-                            console.log(error);
-                        }});
-                }}
+                components.html(
+                    audio_html,
+                    height=0
+                )
 
-            </script>
+        except Exception as e:
 
-            </body>
-            </html>
-            """
-
-            components.html(
-                audio_html,
-                height=0
+            st.error(
+                f"Impossible de lire : {audio_path}"
             )
 
-        # ==================================================
-        # MOBILE MODE
-        # ==================================================
-        else:
-
-            audio_html = f"""
-            <html>
-            <body style="
-                margin:0;
-                padding:0;
-                background:#111;
-            ">
-
-            <audio
-                id="audio_{unique_id}"
-                controls
-                autoplay
-                playsinline
-                style="
-                    width:100%;
-                    height:90px;
-                    position:fixed;
-                    top:0;
-                    left:0;
-                    z-index:9999;
-                    background:#111;
-                "
-            >
-                <source
-                    src="data:audio/mp3;base64,{audio_base64}"
-                    type="audio/mp3"
-                >
-            </audio>
-
-            <script>
-
-                const audio = document.getElementById(
-                    "audio_{unique_id}"
-                );
-
-                audio.load();
-
-                const playPromise = audio.play();
-
-                if (playPromise !== undefined) {{
-
-                    playPromise
-                        .then(() => {{
-                            console.log("mobile playing");
-                        }})
-                        .catch(error => {{
-                            console.log(error);
-                        }});
-                }}
-
-            </script>
-
-            </body>
-            </html>
-            """
-
-            components.html(
-                audio_html,
-                height=100
-            )
-
-    except Exception as e:
-
-        st.error(
-            f"Impossible de lire : {audio_path}"
-        )
-
-        st.write(e)
+            st.write(e)
 
 st.divider()
 
@@ -393,8 +288,6 @@ for i, player_name in enumerate(
             st.session_state.current_player = (
                 player_name
             )
-
-            st.session_state.stop_audio = False
 
             st.rerun()
 
