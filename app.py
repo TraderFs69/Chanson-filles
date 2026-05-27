@@ -16,10 +16,32 @@ EXCEL_FILE = "Chanson Filles.xlsx"
 # ==================================================
 @st.cache_data
 def load_data():
-    return pd.read_excel(EXCEL_FILE)
+
+    df = pd.read_excel(EXCEL_FILE)
+
+    # Nettoyage des colonnes
+    df.columns = df.columns.str.strip()
+
+    # Uniformiser noms colonnes
+    df = df.rename(columns={
+        "Ordre": "ordre",
+        "ORDRE": "ordre",
+        "nom": "Nom",
+        "NOM": "Nom",
+        "lien": "Lien",
+        "LIEN": "Lien"
+    })
+
+    return df
 
 if "df" not in st.session_state:
     st.session_state.df = load_data()
+
+# ==================================================
+# SESSION STATE
+# ==================================================
+if "current_index" not in st.session_state:
+    st.session_state.current_index = 0
 
 # ==================================================
 # FUNCTIONS
@@ -71,7 +93,7 @@ st.markdown("""
 
 .player-card {
     background-color: #111111;
-    padding: 15px;
+    padding: 20px;
     border-radius: 15px;
     margin-bottom: 12px;
     border: 2px solid #ff8c00;
@@ -79,13 +101,13 @@ st.markdown("""
 
 .player-name {
     color: white;
-    font-size: 28px;
+    font-size: 32px;
     font-weight: bold;
 }
 
 .player-order {
     color: #ff8c00;
-    font-size: 22px;
+    font-size: 24px;
     font-weight: bold;
 }
 
@@ -110,12 +132,6 @@ st.markdown(
     '<div class="main-title">⚾ WALK-UP SONGS ⚾</div>',
     unsafe_allow_html=True
 )
-
-# ==================================================
-# CURRENT PLAYER
-# ==================================================
-if "current_index" not in st.session_state:
-    st.session_state.current_index = 0
 
 # ==================================================
 # NAVIGATION
@@ -157,17 +173,21 @@ st.markdown(f"""
 <div class="player-card">
 
 <div class="player-order">
-Ordre #{player['ordre']}
+Ordre #{player.get('ordre', '')}
 </div>
 
 <div class="player-name">
-{player['Nom']}
+{player.get('Nom', '')}
 </div>
 
 </div>
 """, unsafe_allow_html=True)
 
-st.audio(player["Lien"])
+# AUDIO
+audio_url = player.get("Lien", "")
+
+if audio_url != "":
+    st.audio(audio_url)
 
 st.divider()
 
@@ -187,7 +207,7 @@ for i, row in st.session_state.df.iterrows():
 
         st.markdown(f"""
         <div class="player-order">
-        #{row['ordre']}
+        #{row.get('ordre', '')}
         </div>
         """, unsafe_allow_html=True)
 
@@ -196,7 +216,7 @@ for i, row in st.session_state.df.iterrows():
 
         st.markdown(f"""
         <div class="player-name">
-        {row['Nom']}
+        {row.get('Nom', '')}
         </div>
         """, unsafe_allow_html=True)
 
@@ -237,3 +257,9 @@ if st.button("💾 Sauvegarder le lineup"):
     )
 
     st.success("Lineup sauvegardé.")
+
+# ==================================================
+# DEBUG TEMPORAIRE
+# ==================================================
+with st.expander("DEBUG colonnes Excel"):
+    st.write(st.session_state.df.columns)
