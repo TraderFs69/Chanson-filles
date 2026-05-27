@@ -123,10 +123,17 @@ if st.session_state.current_player is not None:
             audio_bytes
         ).decode()
 
+        # IMPORTANT :
+        # lecteur unique à chaque chanson
         audio_html = f"""
-        <audio autoplay>
+        <audio autoplay id="{row['Fichier']}">
             <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
         </audio>
+
+        <script>
+        var audio = document.getElementById("{row['Fichier']}");
+        audio.play();
+        </script>
         """
 
         st.markdown(
@@ -134,8 +141,13 @@ if st.session_state.current_player is not None:
             unsafe_allow_html=True
         )
 
-    except:
-        st.error(f"Impossible de lire : {audio_path}")
+    except Exception as e:
+
+        st.error(
+            f"Impossible de lire : {audio_path}"
+        )
+
+        st.write(e)
 
 st.divider()
 
