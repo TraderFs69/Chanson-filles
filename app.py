@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+from streamlit_sortables import sort_items
 
 # ==================================================
 # CONFIG
@@ -19,10 +20,8 @@ def load_data():
 
     df = pd.read_excel(EXCEL_FILE)
 
-    # Nettoyage des colonnes
     df.columns = df.columns.str.strip()
 
-    # Uniformiser noms colonnes
     df = df.rename(columns={
         "Ordre": "ordre",
         "ORDRE": "ordre",
@@ -37,211 +36,91 @@ def load_data():
 if "df" not in st.session_state:
     st.session_state.df = load_data()
 
-# ==================================================
-# SESSION STATE
-# ==================================================
-if "current_index" not in st.session_state:
-    st.session_state.current_index = 0
-
-# ==================================================
-# FUNCTIONS
-# ==================================================
-def move_up(index):
-
-    if index > 0:
-
-        df = st.session_state.df.copy()
-
-        temp = df.iloc[index - 1].copy()
-
-        df.iloc[index - 1] = df.iloc[index]
-        df.iloc[index] = temp
-
-        df["ordre"] = range(1, len(df) + 1)
-
-        st.session_state.df = df
-
-
-def move_down(index):
-
-    df = st.session_state.df.copy()
-
-    if index < len(df) - 1:
-
-        temp = df.iloc[index + 1].copy()
-
-        df.iloc[index + 1] = df.iloc[index]
-        df.iloc[index] = temp
-
-        df["ordre"] = range(1, len(df) + 1)
-
-        st.session_state.df = df
-
-
-# ==================================================
-# STYLE
-# ==================================================
-st.markdown("""
-<style>
-
-.main-title {
-    font-size: 42px;
-    font-weight: bold;
-    text-align: center;
-    margin-bottom: 20px;
-}
-
-.player-card {
-    background-color: #111111;
-    padding: 20px;
-    border-radius: 15px;
-    margin-bottom: 12px;
-    border: 2px solid #ff8c00;
-}
-
-.player-name {
-    color: white;
-    font-size: 32px;
-    font-weight: bold;
-}
-
-.player-order {
-    color: #ff8c00;
-    font-size: 24px;
-    font-weight: bold;
-}
-
-.stButton button {
-    width: 100%;
-    height: 60px;
-    font-size: 20px;
-    border-radius: 12px;
-}
-
-audio {
-    width: 100%;
-}
-
-</style>
-""", unsafe_allow_html=True)
+if "current_player" not in st.session_state:
+    st.session_state.current_player = None
 
 # ==================================================
 # HEADER
 # ==================================================
-st.markdown(
-    '<div class="main-title">⚾ WALK-UP SONGS ⚾</div>',
-    unsafe_allow_html=True
+st.title("⚾ WALK-UP SONGS MANAGER")
+
+st.markdown("## Drag & Drop Lineup")
+
+# ==================================================
+# SORTABLE LIST
+# ==================================================
+names_list = st.session_state.df["Nom"].tolist()
+
+sorted_names = sort_items(
+    names_list,
+    direction="vertical"
 )
 
 # ==================================================
-# NAVIGATION
+# REBUILD DATAFRAME
 # ==================================================
-nav1, nav2, nav3 = st.columns([1,2,1])
+new_df = pd.DataFrame()
 
-with nav1:
+for i, name in enumerate(sorted_names):
 
-    if st.button("⬅️ Previous"):
+    row = st.session_state.df[
+        st.session_state.df["Nom"] == name
+    ].iloc[0]
 
-        st.session_state.current_index = max(
-            0,
-            st.session_state.current_index - 1
-        )
+    row["ordre"] = i + 1
 
-        st.rerun()
+    new_df = pd.concat([
+        new_df,
+        pd.DataFrame([row])
+    ], ignore_index=True)
 
-with nav3:
-
-    if st.button("Next ➡️"):
-
-        st.session_state.current_index = min(
-            len(st.session_state.df) - 1,
-            st.session_state.current_index + 1
-        )
-
-        st.rerun()
+st.session_state.df = new_df
 
 st.divider()
 
 # ==================================================
-# ACTIVE PLAYER
+# CURRENT PLAYER
 # ==================================================
-player = st.session_state.df.iloc[
-    st.session_state.current_index
-]
+if st.session_state.current_player is not None:
 
-st.markdown(f"""
-<div class="player-card">
+    player_row = st.session_state.df[
+        st.session_state.df["Nom"]
+        == st.session_state.current_player
+    ].iloc[0]
 
-<div class="player-order">
-Ordre #{player.get('ordre', '')}
-</div>
+    st.markdown(f"""
+    ### 🎵 Lecture en cours
+    ## {player_row['Nom']}
+    """)
 
-<div class="player-name">
-{player.get('Nom', '')}
-</div>
-
-</div>
-""", unsafe_allow_html=True)
-
-# AUDIO
-audio_url = player.get("Lien", "")
-
-if audio_url != "":
-    st.audio(audio_url)
+    st.audio(player_row["Lien"])
 
 st.divider()
 
 # ==================================================
-# LINEUP
+# PLAY BUTTONS
 # ==================================================
 st.subheader("Lineup")
 
 for i, row in st.session_state.df.iterrows():
 
-    st.markdown("---")
+    cols = st.columns([1,5,2])
 
-    cols = st.columns([1,4,1,1,2])
-
-    # ORDER
     with cols[0]:
+        st.markdown(f"### #{i+1}")
 
-        st.markdown(f"""
-        <div class="player-order">
-        #{row.get('ordre', '')}
-        </div>
-        """, unsafe_allow_html=True)
-
-    # NAME
     with cols[1]:
+        st.markdown(f"### {row['Nom']}")
 
-        st.markdown(f"""
-        <div class="player-name">
-        {row.get('Nom', '')}
-        </div>
-        """, unsafe_allow_html=True)
-
-    # UP
     with cols[2]:
 
-        if st.button("⬆️", key=f"up_{i}"):
+        if st.button(
+            "🎵 PLAY",
+            key=f"play_{i}"
+        ):
 
-            move_up(i)
-            st.rerun()
+            st.session_state.current_player = row["Nom"]
 
-    # DOWN
-    with cols[3]:
-
-        if st.button("⬇️", key=f"down_{i}"):
-
-            move_down(i)
-            st.rerun()
-
-    # PLAY
-    with cols[4]:
-
-        if st.button("🎵 PLAY", key=f"play_{i}"):
-
-            st.session_state.current_index = i
             st.rerun()
 
 # ==================================================
@@ -257,9 +136,3 @@ if st.button("💾 Sauvegarder le lineup"):
     )
 
     st.success("Lineup sauvegardé.")
-
-# ==================================================
-# DEBUG TEMPORAIRE
-# ==================================================
-with st.expander("DEBUG colonnes Excel"):
-    st.write(st.session_state.df.columns)
