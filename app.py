@@ -13,20 +13,6 @@ st.set_page_config(
     layout="wide"
 )
 
-# ==================================================
-# AUTO SCROLL SCRIPT
-# ==================================================
-st.markdown("""
-<script>
-function scrollToTop() {
-    window.parent.scrollTo({
-        top: 0,
-        behavior: 'smooth'
-    });
-}
-</script>
-""", unsafe_allow_html=True)
-
 EXCEL_FILE = "Chanson Filles.xlsx"
 
 # ==================================================
@@ -101,16 +87,6 @@ st.markdown("""
     font-weight: bold;
 }
 
-/* PLAYER TOUJOURS VISIBLE */
-[data-testid="stAudio"] {
-    position: sticky;
-    top: 0;
-    z-index: 9999;
-    background: #111;
-    padding-top: 10px;
-    padding-bottom: 10px;
-}
-
 </style>
 """, unsafe_allow_html=True)
 
@@ -132,11 +108,11 @@ device_mode = st.radio(
 )
 
 # ==================================================
-# AUDIO SECTION
+# AUDIO SECTION SIDEBAR
 # ==================================================
-audio_container = st.container()
+with st.sidebar:
 
-with audio_container:
+    st.markdown("## 🎵 Lecture")
 
     if st.session_state.current_player is not None:
 
@@ -146,7 +122,6 @@ with audio_container:
         ].iloc[0]
 
         st.markdown(f"""
-        ## 🎵 Lecture en cours
         ### {row['Nom']}
         """)
 
@@ -159,14 +134,14 @@ with audio_container:
                 audio_bytes = audio_file.read()
 
             # ==================================================
-            # MOBILE MODE
+            # MOBILE
             # ==================================================
             if device_mode == "📱 Cellulaire":
 
                 st.audio(audio_bytes)
 
             # ==================================================
-            # PC MODE AUTOPLAY
+            # PC AUTOPLAY
             # ==================================================
             else:
 
@@ -218,8 +193,6 @@ with audio_container:
             )
 
             st.write(e)
-
-st.divider()
 
 # ==================================================
 # AVAILABLE PLAYERS
@@ -301,19 +274,6 @@ for i, player_name in enumerate(
 
             st.session_state.current_player = (
                 player_name
-            )
-
-            # AUTO SCROLL TOP
-            components.html(
-                """
-                <script>
-                window.parent.scrollTo({
-                    top: 0,
-                    behavior: 'smooth'
-                });
-                </script>
-                """,
-                height=0
             )
 
             st.rerun()
