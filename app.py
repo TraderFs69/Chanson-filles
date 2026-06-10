@@ -3,6 +3,8 @@ import pandas as pd
 from streamlit_sortables import sort_items
 from streamlit_local_storage import LocalStorage
 st.write("Local Storage chargé")
+localS = LocalStorage()
+st.write(type(localS))
 # ==================================================
 # CONFIG
 # ==================================================
