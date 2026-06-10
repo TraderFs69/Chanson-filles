@@ -20,10 +20,8 @@ def load_data():
 
     df = pd.read_excel(EXCEL_FILE)
 
-    # Nettoyage colonnes
     df.columns = df.columns.str.strip()
 
-    # Uniformiser noms colonnes
     df = df.rename(columns={
         "nom": "Nom",
         "NOM": "Nom",
@@ -78,7 +76,7 @@ st.markdown("""
 
 .stButton button {
     width: 100%;
-    height: 55px;
+    height: 60px;
     border-radius: 12px;
     font-size: 18px;
     font-weight: bold;
@@ -99,6 +97,93 @@ st.markdown(
     '<div class="main-title">⚾ WALK-UP SONGS ⚾</div>',
     unsafe_allow_html=True
 )
+
+# ==================================================
+# PLAYER CURRENTLY PLAYING
+# ==================================================
+if st.session_state.current_player:
+
+    st.success(
+        f"🎵 Lecture en cours : {st.session_state.current_player}"
+    )
+
+    try:
+
+        row = df[
+            df["Nom"] ==
+            st.session_state.current_player
+        ].iloc[0]
+
+        audio_path = (
+            f"songs/{row['Fichier']}"
+        )
+
+        with open(
+            audio_path,
+            "rb"
+        ) as audio_file:
+
+            st.audio(
+                audio_file.read()
+            )
+
+    except Exception as e:
+
+        st.error(
+            "Impossible de lire la chanson."
+        )
+
+        st.write(e)
+
+    col1, col2 = st.columns(2)
+
+    # STOP
+    with col1:
+
+        if st.button(
+            "⏹️ STOP",
+            use_container_width=True
+        ):
+
+            st.session_state.current_player = None
+
+            st.rerun()
+
+    # NEXT BATTER
+    with col2:
+
+        if st.button(
+            "⏭️ PROCHAINE FRAPPEUSE",
+            use_container_width=True
+        ):
+
+            if len(st.session_state.lineup) > 0:
+
+                try:
+
+                    current_pos = (
+                        st.session_state.lineup.index(
+                            st.session_state.current_player
+                        )
+                    )
+
+                    next_pos = (
+                        current_pos + 1
+                    ) % len(
+                        st.session_state.lineup
+                    )
+
+                    st.session_state.current_player = (
+                        st.session_state.lineup[next_pos]
+                    )
+
+                    st.rerun()
+
+                except:
+
+                    pass
+
+st.divider()
 
 # ==================================================
 # AVAILABLE PLAYERS
@@ -124,7 +209,9 @@ for i, player_name in enumerate(available_players):
             key=f"add_{player_name}"
         ):
 
-            st.session_state.lineup.append(player_name)
+            st.session_state.lineup.append(
+                player_name
+            )
 
             st.rerun()
 
@@ -150,81 +237,72 @@ for i, player_name in enumerate(
     st.session_state.lineup
 ):
 
-    row = df[
-        df["Nom"] == player_name
-    ].iloc[0]
-
     cols = st.columns([1,5,2,2])
 
     # ORDER
     with cols[0]:
 
-        st.markdown(f"## #{i+1}")
+        st.markdown(
+            f"## #{i+1}"
+        )
 
     # NAME
     with cols[1]:
 
-        st.markdown(f"""
-        <div class="player-card">
-        {player_name}
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(
+            f"""
+            <div class="player-card">
+            {player_name}
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
     # PLAY
     with cols[2]:
 
         if st.button(
-            "🎵 PLAY",
-            key=f"play_{i}"
+            "▶️ PLAY",
+            key=f"play_{i}",
+            use_container_width=True
         ):
 
             st.session_state.current_player = (
                 player_name
             )
 
+            st.rerun()
+
     # REMOVE
     with cols[3]:
 
         if st.button(
             "❌ REMOVE",
-            key=f"remove_{i}"
+            key=f"remove_{i}",
+            use_container_width=True
         ):
 
             st.session_state.lineup.remove(
                 player_name
             )
 
+            if (
+                st.session_state.current_player
+                == player_name
+            ):
+                st.session_state.current_player = None
+
             st.rerun()
-
-    # ==================================================
-    # PLAYER DIRECTEMENT SOUS LA JOUEUSE
-    # ==================================================
-    if st.session_state.current_player == player_name:
-
-        audio_path = f"songs/{row['Fichier']}"
-
-        try:
-
-            with open(audio_path, "rb") as audio_file:
-
-                audio_bytes = audio_file.read()
-
-            st.audio(audio_bytes)
-
-        except Exception as e:
-
-            st.error(
-                f"Impossible de lire : {audio_path}"
-            )
-
-            st.write(e)
 
 # ==================================================
 # SAVE LINEUP
 # ==================================================
 st.divider()
 
-if st.button("💾 Sauvegarder le lineup"):
+if st.button(
+    "💾 Sauvegarder le lineup",
+    use_container_width=True
+):
 
     lineup_df = pd.DataFrame({
         "ordre": range(
@@ -239,4 +317,6 @@ if st.button("💾 Sauvegarder le lineup"):
         index=False
     )
 
-    st.success("Lineup sauvegardé.")
+    st.success(
+        "Lineup sauvegardé."
+    )
